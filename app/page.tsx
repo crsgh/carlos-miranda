@@ -6,6 +6,7 @@ import Hero from "@/components/Hero";
 import Marquee from "@/components/Marquee";
 import About from "@/components/About";
 import Work from "@/components/Work";
+import Credentials from "@/components/Credentials";
 import Footer from "@/components/Footer";
 import SmokeLayer from "@/components/SmokeLayer";
 import { site } from "@/data/site";
@@ -23,6 +24,7 @@ export default function Home() {
           <Marquee items={site.services} />
           <About />
           <Work />
+          <Credentials />
           <Footer />
         </main>
       </SmoothScroll>

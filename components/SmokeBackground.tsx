@@ -20,6 +20,7 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { THEME_EVENT, THEME_PALETTE, getStoredTheme } from "@/lib/theme";
 
 /* fullscreen-quad vertex shader for the simulation passes (clip-space passthrough) */
 const simVertex = /* glsl */ `
@@ -157,6 +158,8 @@ const displayFragment = /* glsl */ `
 
   uniform sampler2D uMap;
   uniform vec3 uBg;
+  uniform vec3 uSmokeLo;
+  uniform vec3 uSmokeHi;
   uniform vec2 uRes;
 
   void main(){
@@ -172,10 +175,8 @@ const displayFragment = /* glsl */ `
     d = clamp(max(d, b * 0.85), 0.0, 1.0);
     float dd = pow(d, 0.8);
 
-    // cigarette / vape smoke: cool grey lifting to near-white
-    vec3 lo = vec3(0.32, 0.34, 0.39);
-    vec3 hi = vec3(0.95, 0.965, 1.0);
-    vec3 smoke = mix(lo, hi, smoothstep(0.12, 0.95, dd));
+    // smoke palette (theme-driven): low-density tint → dense tint
+    vec3 smoke = mix(uSmokeLo, uSmokeHi, smoothstep(0.12, 0.95, dd));
 
     // wispy translucent edges — composite over the dark page colour
     float alpha = smoothstep(0.0, 0.4, dd);
@@ -207,6 +208,11 @@ function Smoke() {
   const inside = useRef(false);
   const reduced = useRef(false);
   const visible = useRef(true);
+  // touch / coarse-pointer support: drift the ember on its own so the smoke is
+  // alive on phones, where there is no cursor to follow.
+  const coarse = useRef(false);
+  const lastInput = useRef(0);
+  const autoSeeded = useRef(false);
 
   // ping-pong targets (recreated on resize)
   const targets = useMemo(() => {
@@ -268,12 +274,28 @@ function Smoke() {
         depthWrite: false,
         uniforms: {
           uMap: { value: null as THREE.Texture | null },
-          uBg: { value: new THREE.Color("#0a0a0c") },
+          uBg: { value: new THREE.Vector3(0.039, 0.039, 0.047) },
+          uSmokeLo: { value: new THREE.Vector3(0.32, 0.34, 0.39) },
+          uSmokeHi: { value: new THREE.Vector3(0.95, 0.965, 1.0) },
           uRes: { value: new THREE.Vector2(1, 1) },
         },
       }),
     []
   );
+
+  // keep the smoke palette in sync with the active light/dark theme
+  useEffect(() => {
+    const sync = () => {
+      const p = THEME_PALETTE[getStoredTheme()];
+      const u = displayMat.uniforms;
+      (u.uBg.value as THREE.Vector3).set(...p.bg);
+      (u.uSmokeLo.value as THREE.Vector3).set(...p.lo);
+      (u.uSmokeHi.value as THREE.Vector3).set(...p.hi);
+    };
+    sync();
+    window.addEventListener(THEME_EVENT, sync);
+    return () => window.removeEventListener(THEME_EVENT, sync);
+  }, [displayMat]);
 
   // on (re)size: resync uniforms, clear both targets to empty, dispose on cleanup
   useEffect(() => {
@@ -310,14 +332,17 @@ function Smoke() {
     reduced.current = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
+    coarse.current = window.matchMedia("(hover: none), (pointer: coarse)").matches;
 
-    const onMove = (e: PointerEvent) => {
+    const sample = (clientX: number, clientY: number) => {
       const rect = gl.domElement.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return;
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = 1 - (e.clientY - rect.top) / rect.height; // flip to uv (y up)
+      const x = (clientX - rect.left) / rect.width;
+      const y = 1 - (clientY - rect.top) / rect.height; // flip to uv (y up)
       inside.current = x >= 0 && x <= 1 && y >= 0 && y <= 1;
       pointer.current.set(x, y);
+      lastInput.current = performance.now();
+      autoSeeded.current = false; // a real touch overrides the auto-drift
       if (!hasMoved.current) {
         // seed history so the first sample doesn't draw a line from the centre
         prevPointer.current.set(x, y);
@@ -325,7 +350,18 @@ function Smoke() {
       }
     };
 
-    window.addEventListener("pointermove", onMove, { passive: true });
+    const onPointer = (e: PointerEvent) => sample(e.clientX, e.clientY);
+    // touch fallback for browsers that don't deliver pointer events while a
+    // finger is dragging (and so the plume follows the finger on phones)
+    const onTouch = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (t) sample(t.clientX, t.clientY);
+    };
+
+    window.addEventListener("pointermove", onPointer, { passive: true });
+    window.addEventListener("pointerdown", onPointer, { passive: true });
+    window.addEventListener("touchmove", onTouch, { passive: true });
+    window.addEventListener("touchstart", onTouch, { passive: true });
 
     // pause the simulation if the canvas is ever not on screen
     const io = new IntersectionObserver(
@@ -337,7 +373,10 @@ function Smoke() {
     io.observe(gl.domElement);
 
     return () => {
-      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointermove", onPointer);
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("touchstart", onTouch);
       io.disconnect();
     };
   }, [gl]);
@@ -354,7 +393,23 @@ function Smoke() {
       return;
     }
 
-    // the cigarette is always burning wherever the pointer is: a steady plume
+    // on touch devices, once the finger lifts, let the ember wander on its own
+    // so the smoke keeps living instead of freezing where the touch ended.
+    const idle = performance.now() - lastInput.current > 1100;
+    if (coarse.current && idle) {
+      const t = performance.now() * 0.001;
+      const ax = 0.5 + 0.3 * Math.sin(t * 0.5) + 0.07 * Math.sin(t * 1.7);
+      const ay = 0.45 + 0.28 * Math.cos(t * 0.42) + 0.06 * Math.cos(t * 1.3);
+      if (!autoSeeded.current) {
+        prevPointer.current.set(ax, ay); // avoid a jump on the first auto frame
+        autoSeeded.current = true;
+      }
+      pointer.current.set(ax, ay);
+      inside.current = true;
+      hasMoved.current = true;
+    }
+
+    // the ember is always burning wherever the pointer is: a steady plume
     // at ~70% idle that ramps to 100% with speed, plus a trail while moving.
     const active = hasMoved.current && inside.current;
     const speed = active ? pointer.current.distanceTo(prevPointer.current) : 0;

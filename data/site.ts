@@ -19,89 +19,123 @@ export type Project = {
 export const site = {
   name: "Carlos Miranda",
   initials: "CM",
-  role: "Creative Developer",
-  location: "Madrid, ES",
+  role: "Software Engineer",
+  location: "Marilao, PH",
   email: "carlosdrmiranda@gmail.com",
 
   // Hero
-  heroLines: ["Creative", "Developer", "& Designer"],
+  heroLines: ["Crsgh", "Software", "& Engineer"],
   heroTagline:
-    "I build immersive digital experiences where motion, typography and code collide.",
+    "Full-stack engineer building scalable web applications, internal developer tools and third-party platform integrations.",
 
   // About
   aboutLead:
-    "I'm a developer and designer crafting interfaces that move. For the last decade I've turned brands into living, breathing things on the web — blending WebGL, motion design and obsessive attention to detail.",
+    "I'm a full-stack software engineer with 2+ years of hands-on experience architecting and delivering scalable web applications, internal developer tools and third-party platform integrations.",
   aboutBody:
-    "I care about the millisecond between a hover and a reaction, the easing of a curtain wipe, the weight of a typeface at 14vw. Every project is a chance to make the screen feel physical.",
+    "I shipped a production service request platform handling 200+ users with role-based access control, automated workflows and real-time status synchronization. I own projects end-to-end across React, Next.js, Node.js, TypeScript, PHP, Laravel and Python — from requirements gathering through deployment and release management.",
 
   services: [
-    "Creative Development",
-    "WebGL & Motion",
-    "Art Direction",
-    "Design Systems",
-    "Brand Experiences",
+    "Full-Stack Development",
+    "Platform Integrations",
+    "API Engineering",
+    "Workflow Automation",
+    "Release Management",
   ],
 
   // Footer / contact
   socials: [
-    { label: "Instagram", href: "#" },
     { label: "GitHub", href: "https://github.com/crsgh" },
-    { label: "LinkedIn", href: "#" },
-    { label: "Read.cv", href: "#" },
+    {
+      label: "LinkedIn",
+      href: "https://www.linkedin.com/in/carlos-miranda-82164b39b",
+    },
+    { label: "Email", href: "mailto:carlosdrmiranda@gmail.com" },
   ],
 
   projects: [
     {
       id: "01",
-      title: "Aurora",
-      subtitle: "Commerce, reimagined",
+      title: "Orbit Support Portal",
+      subtitle: "Service request platform · Jira + ConnectWise",
       year: "2025",
-      role: "Lead Developer",
-      tags: ["WebGL", "Next.js", "Shopify"],
+      role: "Software Engineering Intern · GlobalTek BPO",
+      tags: ["React", "Next.js", "Node.js", "TypeScript", "MongoDB"],
       colors: ["#ff4d23", "#d8ff3e"],
       href: "#",
     },
     {
       id: "02",
-      title: "Monolith",
-      subtitle: "An archive in motion",
+      title: "Freelance Full-Stack",
+      subtitle: "Client web apps, APIs & payments",
       year: "2024",
-      role: "Creative Dev",
-      tags: ["Three.js", "GSAP"],
+      role: "Full-Stack Developer (PHP & Laravel)",
+      tags: ["PHP", "Laravel", "MySQL", "PayMongo", "Webhooks"],
       colors: ["#6a3cff", "#29ffd6"],
       href: "#",
     },
     {
       id: "03",
-      title: "Tide",
-      subtitle: "Fintech with a pulse",
+      title: "PetVax",
+      subtitle: "Multi-vendor veterinary services platform",
       year: "2024",
       role: "Design + Build",
-      tags: ["React", "Motion"],
+      tags: ["Laravel", "Flutter", "REST APIs", "Geotagging"],
       colors: ["#ff2e7e", "#ffb627"],
       href: "#",
     },
     {
       id: "04",
-      title: "Field Notes",
-      subtitle: "Editorial, alive",
+      title: "Patintero",
+      subtitle: "A Filipino street game, digitized",
       year: "2023",
-      role: "Front-end",
-      tags: ["Astro", "Lenis"],
+      role: "Game Developer",
+      tags: ["Python", "Pygame"],
       colors: ["#1f6bff", "#b6ff00"],
       href: "#",
     },
-    {
-      id: "05",
-      title: "Halcyon",
-      subtitle: "A festival, online",
-      year: "2023",
-      role: "Lead Developer",
-      tags: ["WebGL", "Sound"],
-      colors: ["#00b3a4", "#ffe600"],
-      href: "#",
-    },
   ] satisfies Project[],
+
+  // Education
+  education: [
+    {
+      school: "FEU Institute of Technology",
+      degree:
+        "BS Information Technology — Web & Mobile Applications",
+      location: "Sampaloc, Manila",
+      period: "2022 — 2026",
+    },
+  ],
+
+  // Certifications
+  certifications: [
+    { name: "DevNet Associate", issuer: "Cisco", year: "2026" },
+    {
+      name: "CCNA: Enterprise Networking, Security & Automation",
+      issuer: "Cisco",
+      year: "2025",
+    },
+    { name: "CyberOps Associate", issuer: "Cisco", year: "2025" },
+    {
+      name: "PMI Project Management Ready™",
+      issuer: "Project Management Institute",
+      year: "2025",
+    },
+    {
+      name: "IT Specialist — Python",
+      issuer: "Certiport (Pearson VUE)",
+      year: "2025",
+    },
+    {
+      name: "IT Specialist — HTML & CSS",
+      issuer: "Certiport (Pearson VUE)",
+      year: "2024",
+    },
+    {
+      name: "IT Specialist — Networking",
+      issuer: "Certiport (Pearson VUE)",
+      year: "2024",
+    },
+  ],
 };
 
 export type Site = typeof site;

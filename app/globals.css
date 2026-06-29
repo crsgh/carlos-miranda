@@ -3,7 +3,8 @@
    Original design system. Ink canvas, bone type, ember/voltage accents.
    ========================================================================== */
 
-:root {
+:root,
+:root[data-theme="dark"] {
   --ink: #0a0a0c;
   --ink-2: #101014;
   --bone: #f0ece3;
@@ -12,12 +13,30 @@
   --line: rgba(240, 236, 227, 0.12);
   --ember: #ff4d23;
   --voltage: #d8ff3e;
+  /* translucent chip/label surface that floats over the page */
+  --surface: rgba(10, 10, 12, 0.7);
+  /* constant light ink for the difference-blended nav — must NOT flip per
+     theme, so the blend inverts correctly against either background */
+  --nav-ink: #f0ece3;
 
   --pad: clamp(1.25rem, 4vw, 4rem);
   --maxw: 1680px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-inout: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+/* ---- light theme: ink/bone flip, accents kept legible on a bone page ----- */
+:root[data-theme="light"] {
+  --ink: #f0ece3;
+  --ink-2: #e7e2d7;
+  --bone: #14130f;
+  --bone-dim: rgba(20, 19, 15, 0.6);
+  --muted: #6a665d;
+  --line: rgba(20, 19, 15, 0.14);
+  --ember: #d83a14;
+  --voltage: #5d7a00;
+  --surface: rgba(240, 236, 227, 0.82);
 }
 
 * {
@@ -140,55 +159,49 @@ section {
   pointer-events: none;
   will-change: transform;
 }
-/* cigarette graphic — offset + rotated so the coal lands on the pointer point */
-.cursor__cig {
+/* simple pointer: solid dot at the hotspot + a soft ring that grows on hover */
+.cursor__dot,
+.cursor__ring {
   position: absolute;
-  left: -78px;
-  top: -22px;
-  transform-origin: 78px 22px;
-  transform: rotate(-20deg);
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
 }
-.cursor__ember {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: emberFlicker 2.4s var(--ease-inout) infinite;
+.cursor__dot {
+  width: 7px;
+  height: 7px;
+  background: var(--bone);
+  transition: width 0.25s var(--ease-out), height 0.25s var(--ease-out),
+    background 0.4s var(--ease-out);
 }
-.cursor__glow {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: glowPulse 2.4s var(--ease-inout) infinite;
+.cursor__ring {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--bone);
+  opacity: 0.45;
+  transition: width 0.3s var(--ease-out), height 0.3s var(--ease-out),
+    opacity 0.3s var(--ease-out), border-color 0.4s var(--ease-out);
 }
-@keyframes emberFlicker {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  45% {
-    opacity: 0.78;
-  }
-  70% {
-    opacity: 0.92;
-  }
+.cursor.is-hover .cursor__ring {
+  width: 56px;
+  height: 56px;
+  opacity: 0.9;
+  border-color: var(--ember);
 }
-@keyframes glowPulse {
-  0%,
-  100% {
-    opacity: 0.78;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.14);
-  }
+.cursor.is-hover .cursor__dot {
+  width: 5px;
+  height: 5px;
+  background: var(--ember);
 }
 .cursor__label {
   position: absolute;
-  left: 16px;
-  top: -30px;
+  left: 22px;
+  top: -34px;
   padding: 0.28rem 0.6rem;
   border-radius: 100px;
-  background: rgba(10, 10, 12, 0.7);
+  background: var(--surface);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   border: 1px solid var(--line);
@@ -272,7 +285,12 @@ section {
   justify-content: space-between;
   padding: clamp(1rem, 2.4vw, 1.8rem) var(--pad);
   mix-blend-mode: difference;
-  color: var(--bone);
+  color: var(--nav-ink);
+}
+.nav__left {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.8rem, 1.6vw, 1.4rem);
 }
 .nav__brand {
   display: flex;
@@ -283,7 +301,29 @@ section {
   font-size: 1.05rem;
 }
 .nav__brand .mono {
-  color: var(--bone-dim);
+  color: currentColor;
+  opacity: 0.6;
+}
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  opacity: 0.85;
+  transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+}
+.theme-toggle:hover {
+  opacity: 1;
+  transform: rotate(-18deg);
+}
+.theme-toggle__icon {
+  display: grid;
+  place-items: center;
+  line-height: 0;
 }
 .nav__links {
   display: flex;
@@ -560,6 +600,8 @@ section {
   padding-top: 0.6rem;
 }
 .work__row .title {
+  display: flex;
+  flex-direction: column;
   font-family: var(--font-display), sans-serif;
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -569,13 +611,15 @@ section {
   transition: transform 0.6s var(--ease-out), opacity 0.5s var(--ease-out);
 }
 .work__row .title em {
+  display: block;
   font-family: var(--font-serif), serif;
   font-style: italic;
   font-weight: 400;
   text-transform: none;
   color: var(--bone-dim);
   font-size: 0.42em;
-  margin-left: 0.6em;
+  margin-left: 0;
+  margin-top: 0.35em;
   letter-spacing: 0;
 }
 .work__row .meta {
@@ -626,15 +670,26 @@ section {
   pointer-events: none;
 }
 @media (max-width: 720px) {
-  /* on touch, drop the floating WebGL plane and the grid third column */
+  /* on touch, drop the floating WebGL plane (no hover) and restack each row so
+     the tech tags + year sit under the title instead of being cut off */
   .work__canvas {
     display: none;
   }
   .work__row {
     grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 0.8rem 1rem;
+  }
+  .work__row .title {
+    grid-column: 2;
   }
   .work__row .meta {
-    display: none;
+    grid-column: 2;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .work__row .meta .tags {
+    justify-content: flex-start;
   }
 }
 
@@ -722,6 +777,10 @@ section {
 /* phones: stack the hero meta + footer, tighten nav spacing */
 @media (max-width: 560px) {
   .hero {
+    /* drop the full-height hero on phones so the title sits just under the nav
+       instead of leaving a big empty gap above it */
+    min-height: auto;
+    padding-top: clamp(5rem, 20vw, 7rem);
     padding-bottom: clamp(1.6rem, 7vw, 3rem);
   }
   .hero__meta {
@@ -729,16 +788,54 @@ section {
     align-items: flex-start;
     gap: 1.1rem;
   }
+  .nav {
+    padding-block: 0.9rem;
+  }
+  .nav__left {
+    gap: 0.7rem;
+  }
   .nav__links {
-    gap: 1.15rem;
+    gap: 0.85rem;
   }
   .nav__brand {
-    font-size: 0.98rem;
+    font-size: 0.95rem;
+  }
+  .nav__brand .mono {
+    display: none; /* free up width for the link row */
+  }
+  .nav__link {
+    font-size: 0.62rem;
+    letter-spacing: 0.05em;
+  }
+  .theme-toggle {
+    width: 30px;
+    height: 30px;
   }
   .footer__bottom {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.7rem;
+  }
+  .cred__row {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .cred__meta {
+    white-space: normal;
+  }
+}
+
+/* very small phones: squeeze the nav a touch more so nothing clips */
+@media (max-width: 380px) {
+  .nav__links {
+    gap: 0.65rem;
+  }
+  .nav__link {
+    font-size: 0.58rem;
+    letter-spacing: 0.03em;
+  }
+  .hero__title {
+    font-size: clamp(2.9rem, 13.5vw, 4.4rem);
   }
 }
 
@@ -757,6 +854,89 @@ section {
 /* ============================================================================
    REDUCED MOTION
    ========================================================================== */
+/* ============================================================================
+   CREDENTIALS (education + certifications)
+   ========================================================================== */
+.cred {
+  padding-block: clamp(4rem, 9vw, 9rem);
+}
+.cred__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: clamp(2rem, 5vw, 4rem);
+}
+.cred__head h2 {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-size: clamp(2rem, 6vw, 5rem);
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+.cred__grid {
+  display: grid;
+  gap: clamp(2.4rem, 5vw, 4rem);
+}
+@media (min-width: 880px) {
+  .cred__grid {
+    grid-template-columns: 0.85fr 1.15fr;
+    align-items: start;
+  }
+}
+.cred__label {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--bone-dim);
+  margin-bottom: 1.6rem;
+}
+.cred__label::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--voltage);
+}
+.cred__edu h3 {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-size: clamp(1.3rem, 2.6vw, 2rem);
+  line-height: 1.05;
+}
+.cred__edu p {
+  margin-top: 0.7rem;
+  color: var(--bone-dim);
+  font-size: clamp(0.98rem, 1.2vw, 1.1rem);
+  line-height: 1.5;
+}
+.cred__edu span {
+  display: block;
+  margin-top: 0.9rem;
+  color: var(--bone-dim);
+}
+.cred__list {
+  border-top: 1px solid var(--line);
+}
+.cred__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.cred__name {
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  font-weight: 500;
+}
+.cred__meta {
+  color: var(--bone-dim);
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;
