@@ -120,6 +120,15 @@ section {
   position: relative;
 }
 
+/* site-wide smoke field — fixed layer behind all content.
+   (SmokeBackground also sets these inline; kept here for discoverability.) */
+.smoke-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
 /* ============================================================================
    CUSTOM CURSOR
    ========================================================================== */
@@ -129,42 +138,73 @@ section {
   left: 0;
   z-index: 9999;
   pointer-events: none;
-  mix-blend-mode: difference;
   will-change: transform;
 }
-.cursor__dot {
+/* cigarette graphic — offset + rotated so the coal lands on the pointer point */
+.cursor__cig {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border-radius: 50%;
-  background: var(--bone);
-  transition: width 0.35s var(--ease-out), height 0.35s var(--ease-out),
-    margin 0.35s var(--ease-out);
+  left: -78px;
+  top: -22px;
+  transform-origin: 78px 22px;
+  transform: rotate(-20deg);
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
 }
-.cursor.is-hover .cursor__dot {
-  width: 84px;
-  height: 84px;
-  margin: -42px 0 0 -42px;
+.cursor__ember {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: emberFlicker 2.4s var(--ease-inout) infinite;
+}
+.cursor__glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: glowPulse 2.4s var(--ease-inout) infinite;
+}
+@keyframes emberFlicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.78;
+  }
+  70% {
+    opacity: 0.92;
+  }
+}
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.78;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.14);
+  }
 }
 .cursor__label {
   position: absolute;
-  top: 0;
-  left: 0;
-  transform: translate(-50%, -50%);
+  left: 16px;
+  top: -30px;
+  padding: 0.28rem 0.6rem;
+  border-radius: 100px;
+  background: rgba(10, 10, 12, 0.7);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
   font-family: var(--font-mono), monospace;
-  font-size: 0.66rem;
-  letter-spacing: 0.1em;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink);
-  opacity: 0;
-  transition: opacity 0.3s var(--ease-out);
+  color: var(--bone);
   white-space: nowrap;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
 }
 .cursor.is-hover .cursor__label {
   opacity: 1;
+  transform: translateY(0);
 }
 
 /* ============================================================================
@@ -290,23 +330,6 @@ section {
   justify-content: flex-end;
   padding-bottom: clamp(2rem, 5vw, 4.5rem);
   overflow: hidden;
-}
-.hero__canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-.hero__canvas::after {
-  /* grain + vignette overlay to seat the WebGL into the page */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    120% 90% at 50% 18%,
-    transparent 40%,
-    rgba(10, 10, 12, 0.55) 100%
-  );
-  pointer-events: none;
 }
 .hero__inner {
   position: relative;
@@ -691,6 +714,44 @@ section {
 .footer__socials a:hover::after {
   transform: scaleX(1);
   transform-origin: left;
+}
+
+/* ============================================================================
+   RESPONSIVE REFINEMENTS
+   ========================================================================== */
+/* phones: stack the hero meta + footer, tighten nav spacing */
+@media (max-width: 560px) {
+  .hero {
+    padding-bottom: clamp(1.6rem, 7vw, 3rem);
+  }
+  .hero__meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.1rem;
+  }
+  .nav__links {
+    gap: 1.15rem;
+  }
+  .nav__brand {
+    font-size: 0.98rem;
+  }
+  .footer__bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.7rem;
+  }
+}
+
+/* short / landscape phones: don't force a 100svh hero that clips the type */
+@media (max-height: 560px) and (orientation: landscape) {
+  .hero {
+    min-height: auto;
+    padding-top: clamp(4.5rem, 16vh, 7rem);
+    padding-bottom: clamp(1.5rem, 6vh, 3rem);
+  }
+  .hero__title {
+    font-size: clamp(2.2rem, 9vw, 5.5rem);
+  }
 }
 
 /* ============================================================================

@@ -7,11 +7,13 @@ import Marquee from "@/components/Marquee";
 import About from "@/components/About";
 import Work from "@/components/Work";
 import Footer from "@/components/Footer";
+import SmokeLayer from "@/components/SmokeLayer";
 import { site } from "@/data/site";
 
 export default function Home() {
   return (
     <>
+      <SmokeLayer />
       <Preloader />
       <Cursor />
       <Nav />

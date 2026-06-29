@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
 import { gsap } from "@/lib/gsap";
 import { site } from "@/data/site";
 import { INTRO_EVENT } from "./Preloader";
-
-const HeroCanvas = dynamic(() => import("./HeroCanvas"), { ssr: false });
 
 export default function Hero() {
   const root = useRef<HTMLElement>(null);
@@ -65,10 +62,6 @@ export default function Hero() {
 
   return (
     <section className="hero" id="top" ref={root}>
-      <div className="hero__canvas">
-        <HeroCanvas />
-      </div>
-
       <div className="hero__inner">
         <span className="mono" style={{ color: "var(--bone-dim)" }}>
           {site.location} — Portfolio ’26
