@@ -33,8 +33,9 @@ tuple drives its procedural WebGL hover plane.
 | --- | --- |
 | `components/Preloader.tsx` | Counter 0→100, then curtain wipe; fires the hero intro |
 | `components/SmoothScroll.tsx` | Lenis instance synced to the GSAP ticker + ScrollTrigger |
-| `components/Cursor.tsx` | Custom magnetic cursor; reads `data-cursor` labels |
-| `components/Hero.tsx` + `HeroCanvas.tsx` | Kinetic masked title over a flowing duotone noise shader |
+| `components/Cursor.tsx` | Lit-cigarette cursor (SVG ember pinned to the pointer); reads `data-cursor` labels |
+| `components/SmokeBackground.tsx` (+ `SmokeLayer.tsx`) | Site-wide GPU smoke field — a ping-pong fluid that plumes off the cursor/ember; fixed behind all content |
+| `components/Hero.tsx` | Kinetic masked title over the smoke field |
 | `components/Work.tsx` + `WorkCanvas.tsx` | Project list with a cursor-following, rippling WebGL plane |
 | `components/About.tsx` | Scroll-triggered word reveals + services |
 | `components/Marquee.tsx` | Seamless infinite marquee |
