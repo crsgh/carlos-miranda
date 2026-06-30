@@ -201,6 +201,20 @@ function Smoke() {
   const simW = Math.max(2, Math.floor(size.width * 0.5));
   const simH = Math.max(2, Math.floor(size.height * 0.5));
 
+  // Render-target precision. Half-float gives the smoothest feedback loop, but
+  // a lot of mobile GPUs can't render *into* a half-float colour buffer (the
+  // framebuffer comes back incomplete and the field stays empty — i.e. no smoke
+  // on phones). Rendering to half-float requires EXT_color_buffer_float under
+  // WebGL2; when that isn't available, fall back to 8-bit unsigned-byte targets,
+  // which are colour-renderable and linearly filterable everywhere. Byte targets
+  // clamp the density at 1.0 instead of 1.5, which is visually indistinguishable
+  // here, so the smoke shows up on every device.
+  const rtType = useMemo(() => {
+    const canRenderHalfFloat =
+      gl.capabilities.isWebGL2 && !!gl.extensions.get("EXT_color_buffer_float");
+    return canRenderHalfFloat ? THREE.HalfFloatType : THREE.UnsignedByteType;
+  }, [gl]);
+
   // pointer state, tracked in uv space (0..1, y up) from window events
   const pointer = useRef(new THREE.Vector2(0.5, 0.5));
   const prevPointer = useRef(new THREE.Vector2(0.5, 0.5));
@@ -214,10 +228,10 @@ function Smoke() {
   const lastInput = useRef(0);
   const autoSeeded = useRef(false);
 
-  // ping-pong targets (recreated on resize)
+  // ping-pong targets (recreated on resize or precision change)
   const targets = useMemo(() => {
     const opts: THREE.RenderTargetOptions = {
-      type: THREE.HalfFloatType,
+      type: rtType,
       format: THREE.RGBAFormat,
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
@@ -230,7 +244,7 @@ function Smoke() {
       a: new THREE.WebGLRenderTarget(simW, simH, opts),
       b: new THREE.WebGLRenderTarget(simW, simH, opts),
     };
-  }, [simW, simH]);
+  }, [simW, simH, rtType]);
 
   const read = useRef(targets.a);
   const write = useRef(targets.b);
