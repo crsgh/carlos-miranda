@@ -32,7 +32,7 @@ export default function Footer() {
         <span className="footer__big">
           <Magnetic strength={0.18}>
             <a href={`mailto:${site.email}`} data-cursor="Say hi">
-              Let&apos;s talk <span className="arrow">↗</span>
+              Let&apos;s talk <span className="arrow">{"↗︎"}</span>
             </a>
           </Magnetic>
         </span>

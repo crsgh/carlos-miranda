@@ -225,7 +225,6 @@ function Smoke() {
   // touch / coarse-pointer support: drift the ember on its own so the smoke is
   // alive on phones, where there is no cursor to follow.
   const coarse = useRef(false);
-  const lastInput = useRef(0);
   const autoSeeded = useRef(false);
 
   // ping-pong targets (recreated on resize or precision change)
@@ -341,41 +340,17 @@ function Smoke() {
     };
   }, [sim, displayMat]);
 
-  // pointer tracking (window-level so it works under the hero text overlay)
+  // pointer tracking (window-level so it works under the hero text overlay).
+  // Only on hover/fine pointers (desktop) does the ember follow the cursor. On
+  // touch devices we deliberately do NOT track the finger: sampling on every
+  // touchmove forces a layout read (getBoundingClientRect) and injects smoke
+  // mid-scroll, which made mobile scrolling stutter. Touch devices (and
+  // reduced-motion) run a calm self-drift instead — see useFrame.
   useEffect(() => {
     reduced.current = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
     coarse.current = window.matchMedia("(hover: none), (pointer: coarse)").matches;
-
-    const sample = (clientX: number, clientY: number) => {
-      const rect = gl.domElement.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-      const x = (clientX - rect.left) / rect.width;
-      const y = 1 - (clientY - rect.top) / rect.height; // flip to uv (y up)
-      inside.current = x >= 0 && x <= 1 && y >= 0 && y <= 1;
-      pointer.current.set(x, y);
-      lastInput.current = performance.now();
-      autoSeeded.current = false; // a real touch overrides the auto-drift
-      if (!hasMoved.current) {
-        // seed history so the first sample doesn't draw a line from the centre
-        prevPointer.current.set(x, y);
-        hasMoved.current = true;
-      }
-    };
-
-    const onPointer = (e: PointerEvent) => sample(e.clientX, e.clientY);
-    // touch fallback for browsers that don't deliver pointer events while a
-    // finger is dragging (and so the plume follows the finger on phones)
-    const onTouch = (e: TouchEvent) => {
-      const t = e.touches[0];
-      if (t) sample(t.clientX, t.clientY);
-    };
-
-    window.addEventListener("pointermove", onPointer, { passive: true });
-    window.addEventListener("pointerdown", onPointer, { passive: true });
-    window.addEventListener("touchmove", onTouch, { passive: true });
-    window.addEventListener("touchstart", onTouch, { passive: true });
 
     // pause the simulation if the canvas is ever not on screen
     const io = new IntersectionObserver(
@@ -386,11 +361,32 @@ function Smoke() {
     );
     io.observe(gl.domElement);
 
+    // calm mode drives itself — attach no pointer listeners (keeps scroll smooth)
+    if (reduced.current || coarse.current) {
+      return () => io.disconnect();
+    }
+
+    const sample = (clientX: number, clientY: number) => {
+      const rect = gl.domElement.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const x = (clientX - rect.left) / rect.width;
+      const y = 1 - (clientY - rect.top) / rect.height; // flip to uv (y up)
+      inside.current = x >= 0 && x <= 1 && y >= 0 && y <= 1;
+      pointer.current.set(x, y);
+      if (!hasMoved.current) {
+        // seed history so the first sample doesn't draw a line from the centre
+        prevPointer.current.set(x, y);
+        hasMoved.current = true;
+      }
+    };
+
+    const onPointer = (e: PointerEvent) => sample(e.clientX, e.clientY);
+    window.addEventListener("pointermove", onPointer, { passive: true });
+    window.addEventListener("pointerdown", onPointer, { passive: true });
+
     return () => {
       window.removeEventListener("pointermove", onPointer);
       window.removeEventListener("pointerdown", onPointer);
-      window.removeEventListener("touchmove", onTouch);
-      window.removeEventListener("touchstart", onTouch);
       io.disconnect();
     };
   }, [gl]);
@@ -401,40 +397,35 @@ function Smoke() {
 
     displayMat.uniforms.uRes.value.set(size.width, size.height);
 
-    if (reduced.current) {
-      // honour reduced-motion: leave the field empty, show only the background
-      displayMat.uniforms.uMap.value = read.current.texture;
-      return;
-    }
+    const u = sim.mat.uniforms;
 
-    // on touch devices, once the finger lifts, let the ember wander on its own
-    // so the smoke keeps living instead of freezing where the touch ended.
-    const idle = performance.now() - lastInput.current > 1100;
-    if (coarse.current && idle) {
+    if (reduced.current || coarse.current) {
+      // Calm mode — touch devices + reduced-motion. No pointer/touch following
+      // (that janked mobile scrolling); a slow self-drifting plume keeps the
+      // smoke alive while the page scrolls smoothly. No movement trail.
       const t = performance.now() * 0.001;
-      const ax = 0.5 + 0.3 * Math.sin(t * 0.5) + 0.07 * Math.sin(t * 1.7);
-      const ay = 0.45 + 0.28 * Math.cos(t * 0.42) + 0.06 * Math.cos(t * 1.3);
+      const ax = 0.5 + 0.24 * Math.sin(t * 0.33) + 0.05 * Math.sin(t * 1.2);
+      const ay = 0.42 + 0.22 * Math.cos(t * 0.29) + 0.04 * Math.cos(t * 1.05);
       if (!autoSeeded.current) {
-        prevPointer.current.set(ax, ay); // avoid a jump on the first auto frame
+        prevPointer.current.set(ax, ay); // avoid a jump on the first frame
         autoSeeded.current = true;
       }
       pointer.current.set(ax, ay);
-      inside.current = true;
-      hasMoved.current = true;
+      u.uEmber.value = 0.5; // steady, gentle plume
+      u.uTrail.value = 0;
+    } else {
+      // Desktop — the ember follows the mouse: a steady plume at ~70% that ramps
+      // to 100% with speed, plus a trail while moving.
+      const active = hasMoved.current && inside.current;
+      const speed = active ? pointer.current.distanceTo(prevPointer.current) : 0;
+      const mv = Math.min(speed * 9.0, 1.0); // 0 when still, 1 when moving fast
+      u.uEmber.value = active ? 0.7 + 0.3 * mv : 0; // ≥70% idle → 100% moving
+      u.uTrail.value = active ? mv : 0;
     }
 
-    // the ember is always burning wherever the pointer is: a steady plume
-    // at ~70% idle that ramps to 100% with speed, plus a trail while moving.
-    const active = hasMoved.current && inside.current;
-    const speed = active ? pointer.current.distanceTo(prevPointer.current) : 0;
-    const mv = Math.min(speed * 9.0, 1.0); // 0 when still, 1 when moving fast
-
-    const u = sim.mat.uniforms;
     u.uPrev.value = read.current.texture;
     u.uPointer.value.copy(pointer.current);
     u.uPrevPointer.value.copy(prevPointer.current);
-    u.uEmber.value = active ? 0.7 + 0.3 * mv : 0; // ≥70% idle → 100% moving
-    u.uTrail.value = active ? mv : 0;
     u.uTime.value += dt;
     u.uDt.value = dt;
 
@@ -460,13 +451,19 @@ function Smoke() {
 }
 
 export default function SmokeBackground() {
+  // Cap the pixel ratio harder on phones — fewer fragments to fill keeps the
+  // background cheap and the scroll smooth on mobile GPUs.
+  const coarse =
+    typeof window !== "undefined" &&
+    window.matchMedia("(hover: none), (pointer: coarse)").matches;
+
   return (
     <Canvas
       className="smoke-bg"
       // fixed, full-viewport, behind every section; never intercepts pointer
       // events (the pointer is read from window listeners instead)
       style={{ position: "fixed", inset: 0, zIndex: -1, pointerEvents: "none" }}
-      dpr={[1, 2]}
+      dpr={coarse ? [1, 1.5] : [1, 2]}
       gl={{
         antialias: false,
         alpha: false,

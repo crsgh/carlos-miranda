@@ -12,7 +12,8 @@ export default function Marquee({
       {items.map((item, i) => (
         <span className="marquee__item" key={i}>
           {item}
-          <span>✳</span>
+          {/* U+FE0E forces text (not emoji) rendering on iOS/Android */}
+          <span>{"✳︎"}</span>
         </span>
       ))}
     </div>
